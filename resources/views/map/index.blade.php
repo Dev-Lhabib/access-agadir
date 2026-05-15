@@ -6,33 +6,91 @@
 
 @section('content')
 <div x-data="mapComponent()" class="flex flex-col md:flex-row h-[calc(100vh-64px)]">
-    <aside class="w-full md:w-80 bg-white p-4 overflow-y-auto border-r border-gray-200">
-        <h2 class="text-xl font-bold text-violet-800 mb-4">Filtres</h2>
+    <aside class="w-full md:w-80 bg-white p-4 overflow-y-auto border-r border-gray-200 flex flex-col">
+        <div x-show="!routeMode">
+            <h2 class="text-xl font-bold text-violet-800 mb-4">Filtres</h2>
 
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
-                <select x-model="filters.category_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                    <option value="">Toutes</option>
-                    @foreach($categories as $category)
-                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                    @endforeach
-                </select>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
+                    <select x-model="filters.category_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <option value="">Toutes</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" x-model="filters.ramp" class="rounded text-violet-600">
+                        <span class="text-sm">Rampe d'accès</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" x-model="filters.adapted_toilet" class="rounded text-violet-600">
+                        <span class="text-sm">Toilettes PMR</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" x-model="filters.pmr_parking" class="rounded text-violet-600">
+                        <span class="text-sm">Parking PMR</span>
+                    </label>
+                </div>
             </div>
 
-            <div class="space-y-2">
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" x-model="filters.ramp" class="rounded text-violet-600">
-                    <span class="text-sm">Rampe d'accès</span>
-                </label>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" x-model="filters.adapted_toilet" class="rounded text-violet-600">
-                    <span class="text-sm">Toilettes PMR</span>
-                </label>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" x-model="filters.pmr_parking" class="rounded text-violet-600">
-                    <span class="text-sm">Parking PMR</span>
-                </label>
+            <button @click="routeMode = true; initRouteMode()" class="mt-4 w-full px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition">
+                🚦 Calculer un itinéraire
+            </button>
+        </div>
+
+        <div x-show="routeMode" x-cloak class="flex-1">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-violet-800">Itinéraire</h2>
+                <button @click="routeMode = false; clearRoute()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-3 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Point de départ</label>
+                    <div class="flex gap-2">
+                        <input type="text" x-model="departure" placeholder="Adresse ou position actuelle" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <button @click="useMyLocation" class="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200" title="Utiliser ma position">
+                            📍
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                    <input type="text" x-model="destinationName" readonly class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50">
+                </div>
+            </div>
+
+            <button @click="calculateRoute()" :disabled="!departure || routing" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition">
+                <span x-show="!routing">Calculer l'itinéraire</span>
+                <span x-show="routing">Calcul en cours...</span>
+            </button>
+
+            <div x-show="routeInfo" x-cloak class="mt-4 p-4 bg-violet-50 rounded-lg">
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-600">Distance:</span>
+                    <span class="font-semibold" x-text="routeInfo.distance"></span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Durée:</span>
+                    <span class="font-semibold" x-text="routeInfo.duration"></span>
+                </div>
+            </div>
+
+            <div x-show="obstaclesOnRoute.length > 0" x-cloak class="mt-4 p-4 bg-red-50 rounded-lg">
+                <h4 class="font-semibold text-red-700 mb-2">⚠️ Obstacles sur le parcours</h4>
+                <ul class="text-sm text-red-600 space-y-1">
+                    <template x-for="obs in obstaclesOnRoute" :key="obs.id">
+                        <li>• <span x-text="obs.type"></span> (<span x-text="obs.severity"></span>)</li>
+                    </template>
+                </ul>
             </div>
         </div>
 
@@ -104,6 +162,8 @@
 
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 <script>
 function mapComponent() {
     return {
@@ -141,6 +201,47 @@ function mapComponent() {
             this.loadData();
             this.checkUrlParams();
             this.setupObstacleClick();
+        },
+
+        setupObstacleClick() {
+            this.map.on('click', (e) => {
+                if (this.obstacleMode && !this.obstacleLat) {
+                    this.obstacleLat = e.latlng.lat;
+                    this.obstacleLng = e.latlng.lng;
+                }
+            });
+        },
+
+        async submitObstacle() {
+            this.submittingObstacle = true;
+            const res = await fetch('{{ route('obstacles.store') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    lat: this.obstacleLat,
+                    lng: this.obstacleLng,
+                    type: this.obstacleType,
+                    description: this.obstacleDesc,
+                    severity: this.obstacleSeverity
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                this.obstacleSuccess = true;
+                this.obstacleLat = null;
+                this.obstacleLng = null;
+                this.obstacleType = '';
+                this.obstacleDesc = '';
+                setTimeout(() => {
+                    this.obstacleMode = false;
+                    this.obstacleSuccess = false;
+                }, 3000);
+            }
+            this.submittingObstacle = false;
         },
 
         checkUrlParams() {
@@ -257,47 +358,6 @@ function mapComponent() {
             }
             this.routeInfo = null;
             this.obstaclesOnRoute = [];
-        },
-
-        setupObstacleClick() {
-            this.map.on('click', (e) => {
-                if (this.obstacleMode && !this.obstacleLat) {
-                    this.obstacleLat = e.latlng.lat;
-                    this.obstacleLng = e.latlng.lng;
-                }
-            });
-        },
-
-        async submitObstacle() {
-            this.submittingObstacle = true;
-            const res = await fetch('{{ route('obstacles.store') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    lat: this.obstacleLat,
-                    lng: this.obstacleLng,
-                    type: this.obstacleType,
-                    description: this.obstacleDesc,
-                    severity: this.obstacleSeverity
-                })
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                this.obstacleSuccess = true;
-                this.obstacleLat = null;
-                this.obstacleLng = null;
-                this.obstacleType = '';
-                this.obstacleDesc = '';
-                setTimeout(() => {
-                    this.obstacleMode = false;
-                    this.obstacleSuccess = false;
-                }, 3000);
-            }
-            this.submittingObstacle = false;
         },
 
         initMap() {

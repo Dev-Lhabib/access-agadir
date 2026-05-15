@@ -33,6 +33,33 @@
             <p class="text-gray-600 mb-8">{{ $place->description }}</p>
             @endif
 
+            <div id="mini-map" class="w-full h-64 rounded-lg mb-4 shadow-inner"></div>
+
+            <div x-data="{ aiOpen: false, loading: false, recommendation: null }" class="mb-8">
+                <button @click="aiOpen = true; if(!recommendation) { loading = true; fetch('{{ route('ai.recommend') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ place_id: {{ $place->id }} }) }).then(r => r.json()).then(d => { recommendation = d.recommendation; loading = false }) }" class="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg hover:from-violet-700 hover:to-indigo-700 transition shadow-md">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                    Demander à l'assistant IA
+                </button>
+
+                <div x-show="aiOpen" x-cloak x-transition class="mt-4 p-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-violet-800">🤖 Assistant AccessAgadir</h3>
+                        <button @click="aiOpen = false" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div x-show="loading" class="flex justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                    </div>
+                    <div x-show="recommendation && !loading" x-cloak class="text-gray-700 leading-relaxed" x-text="recommendation"></div>
+                    <div x-show="!recommendation && !loading" class="text-gray-500 text-center py-4">Cliquez sur le bouton ci-dessus pour obtenir une recommandation</div>
+                </div>
+            </div>
+
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Équipements accessibles</h2>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                 @if($place->wheelchair)
@@ -84,7 +111,49 @@
             </div>
 
             <div class="border-t pt-8">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6">Avis</h2>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900">Avis</h2>
+                    <a href="{{ route('map.index') }}?destination={{ $place->id }}" class="inline-flex items-center px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                        Tracer l'itinéraire
+                    </a>
+                </div>
+
+                <div x-data="{ showForm: false, rating: 0, submitting: false, success: false }">
+                    <button x-show="!showForm" @click="showForm = true" class="mb-4 px-4 py-2 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition">
+                        + Ajouter un avis
+                    </button>
+
+                    <form x-show="showForm" @submit.prevent="submitting = true; fetch('{{ route('places.reviews.store', $place->id) }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ rating: rating, comment: $refs.comment.value }) }).then(() => { success = true; showForm = false; submitting = false; setTimeout(() => location.reload(), 1000) })" class="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Note</label>
+                            <div class="flex gap-2">
+                                <template x-for="i in 5">
+                                    <button type="button" @click="rating = i" class="focus:outline-none">
+                                        <svg class="w-8 h-8 transition-colors" :class="i <= rating ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Commentaire</label>
+                            <textarea x-ref="comment" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500" placeholder="Votre avis..."></textarea>
+                        </div>
+                        <button type="submit" :disabled="rating === 0 || submitting" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 transition">
+                            <span x-show="!submitting">Envoyer</span>
+                            <span x-show="submitting">Envoi...</span>
+                        </button>
+                    </form>
+
+                    <div x-show="success" x-transition class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
+                        Avis ajouté avec succès !
+                    </div>
+                </div>
+
                 @if($place->reviews->count() > 0)
                 <div class="space-y-4">
                     @foreach($place->reviews as $review)
@@ -112,4 +181,20 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('mini-map').setView([{{ $place->lat }}, {{ $place->lng }}], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    L.marker([{{ $place->lat }}, {{ $place->lng }}]).addTo(map)
+        .bindPopup('{{ $place->name }}')
+        .openPopup();
+});
+</script>
+@endpush
 @endsection

@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\ObstacleController as AdminObstacleController;
 use App\Http\Controllers\AiController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MapController;
@@ -18,8 +17,3 @@ Route::post('/places/{id}/reviews', [ReviewController::class, 'store'])->name('p
 Route::get('/api/obstacles', [ObstacleController::class, 'index'])->name('api.obstacles');
 Route::post('/obstacles', [ObstacleController::class, 'store'])->name('obstacles.store');
 Route::post('/ai/recommend', [AiController::class, 'recommend'])->name('ai.recommend');
-
-Route::prefix('admin')->group(function () {
-    Route::get('/obstacles', [AdminObstacleController::class, 'index'])->name('admin.obstacles');
-    Route::patch('/obstacles/{id}', [AdminObstacleController::class, 'updateStatus'])->name('admin.obstacles.update');
-});

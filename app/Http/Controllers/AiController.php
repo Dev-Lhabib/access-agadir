@@ -49,12 +49,12 @@ class AiController extends Controller
             return response()->json(['error' => 'Clé API OpenAI non configurée'], 500);
         }
 
-        $prompt = "Tu es un assistant expert en accessibilité pour personnes à mobilité réduite (PMR) à Agadir, Maroc.
+        $prompt = "Tu es un assistant专家 en accessibilité pour personnes à mobilité réduite (PMR) à Agadir, Maroc.
 Analyse ce lieu et donne des conseils en français (3-5 phrases).
 Catégorie: {$place->category->name}
 Nom: {$place->name}
 Adresse: {$place->address}
-Équipements accessibles: " . (count($accessibility) > 0 ? implode(', ', $accessibility) : 'Aucun signalé') . "
+Équipements.accessibles: " . (count($accessibility) > 0 ? implode(', ', $accessibility) : 'Aucun signalé') . "
 Note: {$place->rating}/5{$obstaclesText}
 " . ($validated['origin_lat'] ? "Point de départ: lat {$validated['origin_lat']}, lng {$validated['origin_lng']}" : '') . "
 Réponds de manière concise et utile pour une personne en fauteuil roulant.";
@@ -76,7 +76,7 @@ Réponds de manière concise et utile pour une personne en fauteuil roulant.";
             $data = $response->json();
             $recommendation = $data['choices'][0]['message']['content'] ?? 'Désolé, aucune recommandation disponible.';
         } catch (\Exception $e) {
-            $recommendation = "Ce lieu ({$place->name}) dispose de " . (count($accessibility) > 0 ? implode(', ', $accessibility) : 'peu d\'équipements accessibles') . ". Il est noté {$place->rating}/5. Nous vous recommandons de vérifier l'accessibilité sur place.";
+            $recommendation = "Ce lieu ({$place->name}) dispose de " . (count($accessibility) > 0 ? implode(', ', $accessibility) : 'peu d\'équipements.accessibles') . ". Il est noté {$place->rating}/5. Nous vous recommandons de vérifier l'accessibilité sur place.";
         }
 
         return response()->json(['recommendation' => $recommendation]);
