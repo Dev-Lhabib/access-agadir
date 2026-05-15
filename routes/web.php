@@ -15,4 +15,5 @@ Route::get('/api/places', [PlaceController::class, 'index'])->name('api.places')
 Route::get('/places/{id}', [PlaceController::class, 'show'])->name('places.show');
 Route::post('/places/{id}/reviews', [ReviewController::class, 'store'])->name('places.reviews.store');
 Route::get('/api/obstacles', [ObstacleController::class, 'index'])->name('api.obstacles');
+Route::post('/obstacles', [ObstacleController::class, 'store'])->name('obstacles.store');
 Route::post('/ai/recommend', [AiController::class, 'recommend'])->name('ai.recommend');

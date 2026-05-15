@@ -99,7 +99,64 @@
         </div>
     </aside>
 
-    <div id="map" class="flex-grow h-64 md:h-full"></div>
+    <div id="map" class="flex-grow h-64 md:h-full relative">
+        <button @click="obstacleMode = true" class="absolute bottom-8 right-8 z-[1000] px-4 py-3 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition flex items-center gap-2">
+            <span>⚠️</span>
+            <span class="hidden sm:inline">Signaler un obstacle</span>
+        </button>
+
+        <div x-show="obstacleMode" x-cloak x-transition class="absolute top-4 right-4 z-[1000] w-80 bg-white rounded-xl shadow-2xl p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-red-700">Signaler un obstacle</h3>
+                <button @click="obstacleMode = false; obstacleLat = null; obstacleLng = null" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <template x-if="!obstacleLat">
+                <p class="text-sm text-gray-600 mb-2">Cliquez sur la carte pour sélectionner la position de l'obstacle.</p>
+            </template>
+
+            <template x-if="obstacleLat">
+                <form @submit.prevent="submitObstacle">
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Type d'obstacle</label>
+                        <select x-model="obstacleType" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="">Sélectionner...</option>
+                            <option value="escalier_bloquant">Escalier bloquant</option>
+                            <option value="trottoir_casse">Trottoir cassé</option>
+                            <option value="pente_forte">Pente forte</option>
+                            <option value="travaux">Travaux</option>
+                            <option value="absence_rampe">Absence de rampe</option>
+                            <option value="route_dangereuse">Route dangereuse</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea x-model="obstacleDesc" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Décrivez l'obstacle..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Gravité</label>
+                        <select x-model="obstacleSeverity" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="low">Faible</option>
+                            <option value="medium">Moyenne</option>
+                            <option value="high">Haute</option>
+                        </select>
+                    </div>
+                    <button type="submit" :disabled="submittingObstacle" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition">
+                        <span x-show="!submittingObstacle">Envoyer le signalement</span>
+                        <span x-show="submittingObstacle">Envoi...</span>
+                    </button>
+                </form>
+            </template>
+
+            <div x-show="obstacleSuccess" x-cloak x-transition class="mt-3 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
+                ✅ Signalement envoyé ! Il sera affiché après modération.
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -130,11 +187,61 @@ function mapComponent() {
         routeInfo: null,
         routeLine: null,
         obstaclesOnRoute: [],
+        obstacleMode: false,
+        obstacleLat: null,
+        obstacleLng: null,
+        obstacleType: '',
+        obstacleDesc: '',
+        obstacleSeverity: 'medium',
+        submittingObstacle: false,
+        obstacleSuccess: false,
 
         init() {
             this.initMap();
             this.loadData();
             this.checkUrlParams();
+            this.setupObstacleClick();
+        },
+
+        setupObstacleClick() {
+            this.map.on('click', (e) => {
+                if (this.obstacleMode && !this.obstacleLat) {
+                    this.obstacleLat = e.latlng.lat;
+                    this.obstacleLng = e.latlng.lng;
+                }
+            });
+        },
+
+        async submitObstacle() {
+            this.submittingObstacle = true;
+            const res = await fetch('{{ route('obstacles.store') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    lat: this.obstacleLat,
+                    lng: this.obstacleLng,
+                    type: this.obstacleType,
+                    description: this.obstacleDesc,
+                    severity: this.obstacleSeverity
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                this.obstacleSuccess = true;
+                this.obstacleLat = null;
+                this.obstacleLng = null;
+                this.obstacleType = '';
+                this.obstacleDesc = '';
+                setTimeout(() => {
+                    this.obstacleMode = false;
+                    this.obstacleSuccess = false;
+                }, 3000);
+            }
+            this.submittingObstacle = false;
         },
 
         checkUrlParams() {
