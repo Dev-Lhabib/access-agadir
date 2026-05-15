@@ -4,9 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Place;
 use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 class PlaceController extends Controller
 {
+    public function show(int $id): View
+    {
+        $place = Place::with(['category', 'reviews'])->findOrFail($id);
+        return view('places.show', compact('place'));
+    }
+
     public function index(): JsonResponse
     {
         $places = Place::with('category')->get()->map(fn($p) => [
