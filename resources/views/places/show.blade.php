@@ -33,7 +33,32 @@
             <p class="text-gray-600 mb-8">{{ $place->description }}</p>
             @endif
 
-            <div id="mini-map" class="w-full h-64 rounded-lg mb-8 shadow-inner"></div>
+            <div id="mini-map" class="w-full h-64 rounded-lg mb-4 shadow-inner"></div>
+
+            <div x-data="{ aiOpen: false, loading: false, recommendation: null }" class="mb-8">
+                <button @click="aiOpen = true; if(!recommendation) { loading = true; fetch('{{ route('ai.recommend') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ place_id: {{ $place->id }} }) }).then(r => r.json()).then(d => { recommendation = d.recommendation; loading = false }) }" class="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg hover:from-violet-700 hover:to-indigo-700 transition shadow-md">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                    Demander à l'assistant IA
+                </button>
+
+                <div x-show="aiOpen" x-cloak x-transition class="mt-4 p-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-violet-800">🤖 Assistant AccessAgadir</h3>
+                        <button @click="aiOpen = false" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div x-show="loading" class="flex justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                    </div>
+                    <div x-show="recommendation && !loading" x-cloak class="text-gray-700 leading-relaxed" x-text="recommendation"></div>
+                    <div x-show="!recommendation && !loading" class="text-gray-500 text-center py-4">Cliquez sur le bouton ci-dessus pour obtenir une recommandation</div>
+                </div>
+            </div>
 
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Équipements accessibles</h2>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">

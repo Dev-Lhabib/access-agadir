@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\ObstacleController;
@@ -14,3 +15,4 @@ Route::get('/api/places', [PlaceController::class, 'index'])->name('api.places')
 Route::get('/places/{id}', [PlaceController::class, 'show'])->name('places.show');
 Route::post('/places/{id}/reviews', [ReviewController::class, 'store'])->name('places.reviews.store');
 Route::get('/api/obstacles', [ObstacleController::class, 'index'])->name('api.obstacles');
+Route::post('/ai/recommend', [AiController::class, 'recommend'])->name('ai.recommend');
