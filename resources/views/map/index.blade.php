@@ -64,7 +64,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-                    <input type="text" x-model="destinationName" readonly class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50">
+                    <input type="text" x-model="destinationName" @change="searchDestination()" placeholder="Rechercher une adresse..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                 </div>
             </div>
 
@@ -279,6 +279,20 @@ function mapComponent() {
                     },
                     () => alert('Impossible de获取 votre position')
                 );
+            }
+        },
+
+        async searchDestination() {
+            if (!this.destinationName || this.destinationName.length < 3) return;
+            
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.destinationName + ', Agadir')}&limit=1`);
+            const results = await res.json();
+            
+            if (results.length > 0) {
+                this.destination = [parseFloat(results[0].lat), parseFloat(results[0].lon)];
+                this.destinationName = results[0].display_name.split(',')[0];
+            } else {
+                alert('Destination non trouvée');
             }
         },
 
