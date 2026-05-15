@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AccessAgadir - Ville Accessible</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>[x-cloak] { display: none !important; }</style>
     @stack('styles')
 </head>
 <body class="flex flex-col min-h-screen bg-gray-100">
